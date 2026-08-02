@@ -1,5 +1,6 @@
 #include <charconv>
 #include <iostream>
+#include <memory>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -47,7 +48,7 @@ struct TransparentEqual {
     }
 };
 
-using Scope = std::unordered_map<string, Value, TransparentHash, TransparentEqual>;
+using Scope = std::unordered_map<string, std::unique_ptr<Value>, TransparentHash, TransparentEqual>;
 using ActiveBindings = std::unordered_map<string, std::vector<Value *>, TransparentHash, TransparentEqual>;
 
 static std::vector<string_view> tokenize(const string &line) {
@@ -203,9 +204,9 @@ int main() {
                     if (!valid_declaration_value(type, value_token, value)) {
                         valid = false;
                     } else {
-                        auto [it, inserted] = scopes.back().emplace(string(name), std::move(value));
+                        auto [it, inserted] = scopes.back().emplace(string(name), std::make_unique<Value>(std::move(value)));
                         (void)inserted;
-                        active[it->first].push_back(&it->second);
+                        active[it->first].push_back(it->second.get());
                     }
                 }
             }
